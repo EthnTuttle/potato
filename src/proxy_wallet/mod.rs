@@ -16,7 +16,7 @@ use tokio::{
 use tokio_util::sync::CancellationToken;
 use tracing::{debug, error, info, warn};
 
-use proxy_config::{DownstreamConfig, ProxyConfig, UpstreamConfig, UpstreamDifficultyConfig};
+use proxy_config::ProxyConfig;
 
 use crate::status::{self, State, Status};
 

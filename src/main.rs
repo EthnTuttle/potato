@@ -1,13 +1,10 @@
 use anyhow::Result;
-use bitcoincore_rpc::{Auth, Client as BitcoinCoreClient, RpcApi};
 use clap::Parser;
 use log::{debug, error, info};
 use std::env;
 use std::path::PathBuf;
-use std::time::Duration;
 use stratum_common::bitcoin;
 use tokio;
-use tokio::fs;
 use tokio_util::sync::CancellationToken;
 
 mod bitcoin_node;

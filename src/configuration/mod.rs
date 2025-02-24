@@ -5,7 +5,7 @@ use crate::proxy_wallet::proxy_config::{
 use clap::Parser;
 use ext_config::{Config, File, FileFormat};
 use key_utils::Secp256k1PublicKey;
-use log::{debug, error, info, warn};
+use log::{error, info, warn};
 use slip132::FromSlip132;
 use std::io::{self, Write};
 use std::str::FromStr;
