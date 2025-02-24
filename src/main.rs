@@ -63,15 +63,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let cancel_token = CancellationToken::new();
     let cancel_token_proxy = cancel_token.clone();
     let cancel_token_pool = cancel_token.clone();
-
-    // Load or create default proxy config
-    let proxy_settings = load_or_create_proxy_config(&args.proxy_config_path)?;
-    info!("ProxyWallet Config: {:?}", &proxy_settings);
-
+ 
     // Load or create default pool config
     let mut pool_settings = load_or_create_pool_config(&args.pool_mint_config_path)?;
     info!("PoolMint Config: {:?}", &pool_settings);
 
+    // Load or create default proxy config
+    let proxy_settings = load_or_create_proxy_config(&args.proxy_config_path, &pool_settings)?;
+    info!("ProxyWallet Config: {:?}", &proxy_settings);
+    
     // Process coinbase output
     let coinbase_output = process_coinbase_output(&mut args)?;
 
