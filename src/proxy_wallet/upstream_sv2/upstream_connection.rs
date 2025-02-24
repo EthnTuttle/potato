@@ -22,11 +22,10 @@ impl UpstreamConnection {
     /// Send a SV2 message to the Upstream role
     pub async fn send(&mut self, sv2_frame: StdFrame) -> ProxyResult<'static, ()> {
         let either_frame = sv2_frame.into();
-        self.sender.send(either_frame).await.map_err(|e| {
-            Error::ChannelErrorSender(
-                ChannelSendError::General(e.to_string()),
-            )
-        })?;
+        self.sender
+            .send(either_frame)
+            .await
+            .map_err(|e| Error::ChannelErrorSender(ChannelSendError::General(e.to_string())))?;
         Ok(())
     }
 }

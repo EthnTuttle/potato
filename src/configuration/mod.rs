@@ -1,15 +1,17 @@
+use crate::pool_mint::mining_pool::{CoinbaseOutput, PoolConfiguration};
+use crate::proxy_wallet::proxy_config::{
+    DownstreamDifficultyConfig, ProxyConfig, UpstreamDifficultyConfig,
+};
 use clap::Parser;
 use ext_config::{Config, File, FileFormat};
-use log::{debug, info, error, warn};
-use stratum_common::bitcoin::util::bip32::{ExtendedPubKey, DerivationPath};
-use stratum_common::bitcoin::secp256k1::Secp256k1;
-use stratum_common::bitcoin::Network;
-use std::str::FromStr;
+use key_utils::Secp256k1PublicKey;
+use log::{debug, error, info, warn};
 use slip132::FromSlip132;
 use std::io::{self, Write};
-use crate::pool_mint::mining_pool::{PoolConfiguration, CoinbaseOutput};
-use crate::proxy_wallet::proxy_config::{ProxyConfig, DownstreamDifficultyConfig, UpstreamDifficultyConfig};
-use key_utils::Secp256k1PublicKey;
+use std::str::FromStr;
+use stratum_common::bitcoin::secp256k1::Secp256k1;
+use stratum_common::bitcoin::util::bip32::{DerivationPath, ExtendedPubKey};
+use stratum_common::bitcoin::Network;
 
 #[derive(Parser, Debug)]
 #[clap(author = "Gary Krause", version, about)]
@@ -20,11 +22,19 @@ pub struct Args {
     pub verbose: bool,
 
     /// Path to the proxy wallet configuration file
-    #[arg(short = 'p', long = "proxy-config", default_value = "proxy-config.toml")]
+    #[arg(
+        short = 'p',
+        long = "proxy-config",
+        default_value = "proxy-config.toml"
+    )]
     pub proxy_config_path: String,
 
-    /// Path to the pool mint configuration file 
-    #[arg(short = 'm', long = "pool-mint-config", default_value = "pool-mint-config.toml")]
+    /// Path to the pool mint configuration file
+    #[arg(
+        short = 'm',
+        long = "pool-mint-config",
+        default_value = "pool-mint-config.toml"
+    )]
     pub pool_mint_config_path: String,
 
     /// The coinbase output address where mining rewards will be sent (SLIP-132 format)
@@ -66,7 +76,7 @@ fn prompt_for_coinbase_output() -> io::Result<String> {
         let mut input = String::new();
         io::stdin().read_line(&mut input)?;
         let input = input.trim();
-        
+
         match validate_xpub(input) {
             Ok(_) => return Ok(input.to_string()),
             Err(e) => {
@@ -81,9 +91,17 @@ pub fn create_default_pool_config() -> PoolConfiguration {
     PoolConfiguration {
         listen_address: "0.0.0.0:34254".to_string(),
         tp_address: "127.0.0.1:8442".to_string(),
-        tp_authority_public_key: Some(Secp256k1PublicKey::from_str("9auqWEzQDVyd2oe1JVGFLMLHZtCo2FFqZwtKA5gd9xbuEu7PH72").unwrap()),
-        authority_public_key: Secp256k1PublicKey::from_str("9auqWEzQDVyd2oe1JVGFLMLHZtCo2FFqZwtKA5gd9xbuEu7PH72").unwrap(),
-        authority_secret_key: "mkDLTBBRxdBv998612qipDYoTK3YUrqLe8uWw7gu3iXbSrn2n".parse().unwrap(),
+        tp_authority_public_key: Some(
+            Secp256k1PublicKey::from_str("9auqWEzQDVyd2oe1JVGFLMLHZtCo2FFqZwtKA5gd9xbuEu7PH72")
+                .unwrap(),
+        ),
+        authority_public_key: Secp256k1PublicKey::from_str(
+            "9auqWEzQDVyd2oe1JVGFLMLHZtCo2FFqZwtKA5gd9xbuEu7PH72",
+        )
+        .unwrap(),
+        authority_secret_key: "mkDLTBBRxdBv998612qipDYoTK3YUrqLe8uWw7gu3iXbSrn2n"
+            .parse()
+            .unwrap(),
         cert_validity_sec: 3600,
         coinbase_outputs: vec![CoinbaseOutput::new(
             "P2WPKH".to_string(),
@@ -106,7 +124,7 @@ pub fn create_default_proxy_config(pool_config: &PoolConfiguration) -> ProxyConf
         upstream_address: host,
         upstream_port: port,
         upstream_authority_pubkey: pool_config.authority_public_key.clone(),
-        downstream_address: "0.0.0.0".to_string(), 
+        downstream_address: "0.0.0.0".to_string(),
         downstream_port: 34255,
         max_supported_version: 2,
         min_supported_version: 2,
@@ -126,7 +144,10 @@ pub fn create_default_proxy_config(pool_config: &PoolConfiguration) -> ProxyConf
     }
 }
 
-pub fn load_or_create_proxy_config(config_path: &str, pool_config: &PoolConfiguration) -> Result<ProxyConfig, Box<dyn std::error::Error>> {
+pub fn load_or_create_proxy_config(
+    config_path: &str,
+    pool_config: &PoolConfiguration,
+) -> Result<ProxyConfig, Box<dyn std::error::Error>> {
     match Config::builder()
         .add_source(File::new(config_path, FileFormat::Toml))
         .build()
@@ -138,25 +159,20 @@ pub fn load_or_create_proxy_config(config_path: &str, pool_config: &PoolConfigur
                 Some((h, p)) => (h.to_string(), p.parse().unwrap_or(34254)),
                 None => ("127.0.0.1".to_string(), 34254),
             };
-            
-            // Warn if we're overwriting existing values
-            if proxy_config.upstream_address != host || proxy_config.upstream_port != port {
-                warn!(
+
+            warn!(
                     "Overriding proxy upstream connection details from config file. Using pool's listen address {}:{}",
                     host, port
                 );
-            }
-            if proxy_config.upstream_authority_pubkey != pool_config.authority_public_key {
-                warn!(
+            warn!(
                     "Overriding proxy upstream authority public key from config file with pool's authority key"
                 );
-            }
-            
+
             proxy_config.upstream_address = host;
             proxy_config.upstream_port = port;
             proxy_config.upstream_authority_pubkey = pool_config.authority_public_key.clone();
             Ok(proxy_config)
-        },
+        }
         Err(e) => {
             warn!("Failed to load proxy config ({}), using defaults", e);
             Ok(create_default_proxy_config(pool_config))
@@ -164,7 +180,9 @@ pub fn load_or_create_proxy_config(config_path: &str, pool_config: &PoolConfigur
     }
 }
 
-pub fn load_or_create_pool_config(config_path: &str) -> Result<PoolConfiguration, Box<dyn std::error::Error>> {
+pub fn load_or_create_pool_config(
+    config_path: &str,
+) -> Result<PoolConfiguration, Box<dyn std::error::Error>> {
     match Config::builder()
         .add_source(File::new(config_path, FileFormat::Toml))
         .build()
@@ -186,13 +204,13 @@ pub fn process_coinbase_output(args: &mut Args) -> Result<String, Box<dyn std::e
                     Ok(child_key) => {
                         info!("Derived public key: {}", child_key.to_string());
                         output.to_string()
-                    },
+                    }
                     Err(e) => {
                         error!("Failed to derive child key: {}", e);
                         prompt_for_coinbase_output()?
                     }
                 }
-            },
+            }
             Err(e) => {
                 error!("Invalid coinbase output provided: {}", e);
                 prompt_for_coinbase_output()?
@@ -203,4 +221,4 @@ pub fn process_coinbase_output(args: &mut Args) -> Result<String, Box<dyn std::e
     };
     args.coinbase_output = Some(coinbase_output.clone());
     Ok(coinbase_output)
-} 
+}

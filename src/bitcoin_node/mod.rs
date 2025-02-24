@@ -34,14 +34,14 @@ pub struct BitcoinNode {
 impl BitcoinNode {
     pub async fn new(data_dir: PathBuf, network: bitcoin::Network) -> Result<Self> {
         fs::create_dir_all(&data_dir).await?;
-        
+
         let rpc_port = match network {
             bitcoin::Network::Regtest => 18443,
             bitcoin::Network::Testnet => 18332,
             bitcoin::Network::Signet => 38332,
-            _ => return Err(anyhow::anyhow!("Unsupported network"))
+            _ => return Err(anyhow::anyhow!("Unsupported network")),
         };
-        
+
         let p2p_port = rpc_port + 1;
         let zmq_block_port = rpc_port + 2;
         let zmq_tx_port = rpc_port + 3;
@@ -57,30 +57,27 @@ impl BitcoinNode {
         let bitcoind_path = which::which("bitcoind")?;
         let mut cmd = tokio::process::Command::new(bitcoind_path);
         cmd.arg(format!("-datadir={}", data_dir.display()));
-        
+
         let child = cmd.spawn()?;
-        
+
         let rpc_url = format!("http://127.0.0.1:{}", rpc_port);
         let auth = Auth::UserPass("bitcoin".to_string(), "bitcoin".to_string());
         let client = BitcoinCoreClient::new(&rpc_url, auth)?;
 
-        Ok(Self {
-            client,
-            data_dir,
-        })
+        Ok(Self { client, data_dir })
     }
 
     pub async fn wait_for_ready(&self, initial_sync: bool) -> Result<()> {
         use tokio::time::sleep;
-        
+
         const MAX_WAIT: Duration = Duration::from_secs(8 * 60);
         const INITIAL_WAIT: Duration = Duration::from_secs(1);
         const MAX_RETRY_INTERVAL: Duration = Duration::from_secs(30);
         const SYNC_CHECK_INTERVAL: Duration = Duration::from_secs(3600);
-        
+
         let start = std::time::Instant::now();
         let mut wait_time = INITIAL_WAIT;
-        
+
         loop {
             match self.client.get_blockchain_info() {
                 Ok(info) => {
@@ -98,13 +95,21 @@ impl BitcoinNode {
                 }
                 Err(e) => {
                     debug!("Waiting for Bitcoin Core: {}", e);
-                    
+
                     if !initial_sync && start.elapsed() >= MAX_WAIT {
-                        return Err(anyhow::anyhow!("Timeout waiting for bitcoind after {:?}", MAX_WAIT));
+                        return Err(anyhow::anyhow!(
+                            "Timeout waiting for bitcoind after {:?}",
+                            MAX_WAIT
+                        ));
                     }
-                    
-                    sleep(if initial_sync { SYNC_CHECK_INTERVAL } else { wait_time }).await;
-                    
+
+                    sleep(if initial_sync {
+                        SYNC_CHECK_INTERVAL
+                    } else {
+                        wait_time
+                    })
+                    .await;
+
                     if !initial_sync {
                         wait_time = std::cmp::min(wait_time * 2, MAX_RETRY_INTERVAL);
                     }
@@ -112,4 +117,4 @@ impl BitcoinNode {
             }
         }
     }
-} 
+}

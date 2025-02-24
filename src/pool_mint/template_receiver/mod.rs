@@ -1,6 +1,7 @@
 use super::mining_pool::{EitherFrame, StdFrame};
-use crate::status;
 use crate::error::{PoolError, PoolResult};
+use crate::pool_mint::template_receiver::setup_connection::SetupConnectionHandler;
+use crate::status;
 use async_channel::{Receiver, Sender};
 use codec_sv2::{HandshakeRole, Initiator};
 use error_handling::handle_result;
@@ -14,7 +15,6 @@ use roles_logic_sv2::{
     },
     utils::Mutex,
 };
-use crate::pool_mint::template_receiver::setup_connection::SetupConnectionHandler;
 use std::{convert::TryInto, net::SocketAddr, sync::Arc};
 use tokio::{net::TcpStream, task};
 use tracing::info;
@@ -46,7 +46,10 @@ impl TemplateRx {
         let stream = TcpStream::connect(address).await?;
         info!("Template provider connection:");
         info!("  - Connected to server at: {}", address);
-        info!("  - Authority public key: {}", expected_tp_authority_public_key.map_or("None".to_string(), |k| k.to_string()));
+        info!(
+            "  - Authority public key: {}",
+            expected_tp_authority_public_key.map_or("None".to_string(), |k| k.to_string())
+        );
 
         let initiator = match expected_tp_authority_public_key {
             Some(expected_tp_authority_public_key) => {

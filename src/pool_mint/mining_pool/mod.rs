@@ -4,7 +4,6 @@ use crate::{
 };
 use async_channel::{Receiver, Sender};
 use binary_sv2::U256;
-use stratum_common::bitcoin::{Script, TxOut};
 use codec_sv2::{HandshakeRole, Responder, StandardEitherFrame, StandardSv2Frame};
 use error_handling::handle_result;
 use key_utils::{Secp256k1PublicKey, Secp256k1SecretKey, SignatureService};
@@ -30,6 +29,7 @@ use std::{
     net::SocketAddr,
     sync::Arc,
 };
+use stratum_common::bitcoin::{Script, TxOut};
 use tokio::{net::TcpListener, task};
 use tracing::{debug, error, info, warn};
 
@@ -417,7 +417,10 @@ impl Pool {
         let status_tx = self_.safe_lock(|s| s.status_tx.clone())?;
         let listener = TcpListener::bind(&config.listen_address).await?;
         info!("Starting mining pool server:");
-        info!("  - Listening for connections on: {}", config.listen_address);
+        info!(
+            "  - Listening for connections on: {}",
+            config.listen_address
+        );
         info!("  - Template provider address: {}", config.tp_address);
 
         while let Ok((stream, _)) = listener.accept().await {
@@ -731,10 +734,10 @@ impl Pool {
 #[cfg(test)]
 mod test {
     use binary_sv2::{B0255, B064K};
-    use stratum_common::bitcoin;
-    use stratum_common::bitcoin::{util::psbt::serialize::Serialize, Transaction, Witness};
     use ext_config::{Config, File, FileFormat};
     use std::convert::TryInto;
+    use stratum_common::bitcoin;
+    use stratum_common::bitcoin::{util::psbt::serialize::Serialize, Transaction, Witness};
     use tracing::error;
 
     use super::PoolConfiguration;

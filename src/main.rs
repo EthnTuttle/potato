@@ -1,36 +1,38 @@
-use log::{debug, info, error};
-use tokio;
-use tokio_util::sync::CancellationToken;
+use anyhow::Result;
+use bitcoincore_rpc::{Auth, Client as BitcoinCoreClient, RpcApi};
 use clap::Parser;
+use log::{debug, error, info};
 use std::env;
 use std::path::PathBuf;
 use std::time::Duration;
-use bitcoincore_rpc::{Auth, Client as BitcoinCoreClient, RpcApi};
 use stratum_common::bitcoin;
+use tokio;
 use tokio::fs;
-use anyhow::Result;
+use tokio_util::sync::CancellationToken;
 
+mod bitcoin_node;
+mod configuration;
+mod error;
 mod pool_mint;
 mod proxy_wallet;
 mod status;
-mod error;
-mod configuration;
-mod bitcoin_node;
 
-use configuration::{Args, load_or_create_proxy_config, load_or_create_pool_config, process_coinbase_output};
-use pool_mint::mining_pool::CoinbaseOutput;
 use bitcoin_node::BitcoinNode;
+use configuration::{
+    load_or_create_pool_config, load_or_create_proxy_config, process_coinbase_output, Args,
+};
+use pool_mint::mining_pool::CoinbaseOutput;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut args = Args::parse();
-    
+
     // Ensure mainnet is not allowed
     if args.network == bitcoin::Network::Bitcoin {
         error!("Mainnet is not supported");
         return Err("Mainnet is not supported".into());
     }
-    
+
     // Set the log level based on the verbose flag
     if args.verbose {
         env::set_var("RUST_LOG", "debug");
@@ -38,15 +40,21 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         env::set_var("RUST_LOG", "info");
     }
     pretty_env_logger::init();
-    
+
     debug!("DEBUG {args:?}");
 
     // Initialize Bitcoin Core
-    info!("Starting Bitcoin Core{}...", 
-        if args.initial_sync { " (initial sync mode)" } else { "" });
+    info!(
+        "Starting Bitcoin Core{}...",
+        if args.initial_sync {
+            " (initial sync mode)"
+        } else {
+            ""
+        }
+    );
     let bitcoin_data_dir = PathBuf::from("bitcoin_data");
     let bitcoin_node = BitcoinNode::new(bitcoin_data_dir, args.network).await?;
-    
+
     // Wait for Bitcoin Core to be ready
     info!("Waiting for Bitcoin Core to be ready...");
     bitcoin_node.wait_for_ready(args.initial_sync).await?;
@@ -70,11 +78,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     info!("Using coinbase output address: {}", coinbase_output);
     info!("Using derivation path: {}", args.derivation_path);
     info!("Using proxy config path: {}", args.proxy_config_path);
-    info!("Using pool mint config path: {}", args.pool_mint_config_path);
+    info!(
+        "Using pool mint config path: {}",
+        args.pool_mint_config_path
+    );
 
     // Update pool settings with the validated coinbase output
     let coinbase_output = CoinbaseOutput::new(
-        "P2WPKH".to_string(),  // Using P2WPKH for SLIP-132 xpub
+        "P2WPKH".to_string(), // Using P2WPKH for SLIP-132 xpub
         coinbase_output,
     );
     pool_settings.coinbase_outputs = vec![coinbase_output];

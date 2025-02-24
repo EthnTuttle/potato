@@ -314,12 +314,9 @@ impl Upstream {
                 let mut incoming: StdFrame = handle_result!(tx_status, incoming.try_into());
                 // On message receive, get the message type from the message header and get the
                 // message payload
-                let message_type =
-                    incoming
-                        .get_header()
-                        .ok_or(crate::error::Error::FramingSv2(
-                            framing_sv2::Error::ExpectedSv2Frame,
-                        ));
+                let message_type = incoming.get_header().ok_or(crate::error::Error::FramingSv2(
+                    framing_sv2::Error::ExpectedSv2Frame,
+                ));
 
                 let message_type = handle_result!(tx_status, message_type).msg_type();
 
@@ -458,15 +455,13 @@ impl Upstream {
     #[allow(clippy::result_large_err)]
     fn get_job_id(
         self_: &Arc<Mutex<Self>>,
-    ) -> Result<Result<u32, crate::error::Error<'static>>, crate::error::Error<'static>>
-    {
+    ) -> Result<Result<u32, crate::error::Error<'static>>, crate::error::Error<'static>> {
         self_
             .safe_lock(|s| {
                 if s.is_work_selection_enabled() {
-                    s.last_job_id
-                        .ok_or(crate::error::Error::RolesSv2Logic(
-                            RolesLogicError::NoValidTranslatorJob,
-                        ))
+                    s.last_job_id.ok_or(crate::error::Error::RolesSv2Logic(
+                        RolesLogicError::NoValidTranslatorJob,
+                    ))
                 } else {
                     s.job_id.ok_or(crate::error::Error::RolesSv2Logic(
                         RolesLogicError::NoValidJob,
@@ -497,10 +492,9 @@ impl Upstream {
 
                 let channel_id = self_
                     .safe_lock(|s| {
-                        s.channel_id
-                            .ok_or(crate::error::Error::RolesSv2Logic(
-                                RolesLogicError::NotFoundChannelId,
-                            ))
+                        s.channel_id.ok_or(crate::error::Error::RolesSv2Logic(
+                            RolesLogicError::NotFoundChannelId,
+                        ))
                     })
                     .map_err(|_e| PoisonLock);
                 sv2_submit.channel_id =

@@ -1,8 +1,10 @@
 use crate::{
-    error::ProxyResult, proxy_wallet::{
+    error::ProxyResult,
+    proxy_wallet::{
         downstream_sv1,
         proxy_config::{DownstreamDifficultyConfig, UpstreamDifficultyConfig},
-    }, status
+    },
+    status,
 };
 use async_channel::{bounded, Receiver, Sender};
 use async_std::{

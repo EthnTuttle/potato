@@ -2,11 +2,11 @@ use roles_logic_sv2::{
     job_creator::extended_job_to_non_segwit,
     mining_sv2::{NewExtendedMiningJob, SetNewPrevHash},
 };
-use tracing::debug;
 use sv1_api::{
     server_to_client,
     utils::{HexU32Be, MerkleNode, PrevHash},
 };
+use tracing::debug;
 
 /// Creates a new SV1 `mining.notify` message if both SV2 `SetNewPrevHash` and
 /// `NewExtendedMiningJob` messages have been received. If one of these messages is still being
