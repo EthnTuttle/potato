@@ -33,7 +33,6 @@ pub struct BitcoinNode {
 
 impl BitcoinNode {
     pub async fn new(data_dir: PathBuf, network: bitcoin::Network) -> Result<Self> {
-        // ... existing code ...
         fs::create_dir_all(&data_dir).await?;
         
         let rpc_port = match network {
@@ -72,7 +71,6 @@ impl BitcoinNode {
     }
 
     pub async fn wait_for_ready(&self, initial_sync: bool) -> Result<()> {
-        // ... existing wait_for_ready implementation ...
         use tokio::time::sleep;
         
         const MAX_WAIT: Duration = Duration::from_secs(8 * 60);
