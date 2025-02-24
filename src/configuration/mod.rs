@@ -38,6 +38,10 @@ pub struct Args {
     /// The Bitcoin network to use (mainnet not allowed)
     #[arg(short = 'n', long = "network", default_value = "testnet4")]
     pub network: Network,
+
+    /// Whether bitcoind is performing initial sync (extends wait time indefinitely)
+    #[arg(long = "initial-sync")]
+    pub initial_sync: bool,
 }
 
 fn derive_child_public_key(xpub: &ExtendedPubKey, path: &str) -> Result<ExtendedPubKey, String> {

@@ -15,6 +15,8 @@ async-channel = "1.5.1"
 async-compat = "0.2.1"
 async-recursion = "0.3.2"
 async-std = { version = "1.12.0", features = ["attributes"] }
+anyhow = "1.0"
+bitcoincore-rpc = "0.17.0"
 clap = { version = "4.3.14", features = ["derive"] }
 ext-config = { version = "0.14.0", features = ["toml"], package = "config" }
 futures = "0.3.25"
@@ -34,6 +36,7 @@ tracing = "0.1.41"
 tracing-subscriber = { version = "0.3" }
 tokio = { version = "1", features = ["full"] }
 tokio-util = { version = "0.7.10", features = ["codec"] }
+which = "4.4"
 
 # Bitcoin
 bitcoin = "0.29.1"
@@ -52,6 +55,7 @@ noise_sv2 = "1.2.1"
 roles_logic_sv2 = "^1.0.0"
 sv1_api = "^1.0.0"
 slip132 = "0.10"
+devimint = "0.5.0"
 
 
 [dev-dependencies]
