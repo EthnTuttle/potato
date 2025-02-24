@@ -6,6 +6,7 @@ use std::env;
 use std::path::PathBuf;
 use std::time::Duration;
 use bitcoincore_rpc::{Auth, Client as BitcoinCoreClient, RpcApi};
+use stratum_common::bitcoin;
 use tokio::fs;
 use anyhow::Result;
 
@@ -107,8 +108,8 @@ impl BitcoinNode {
                 Ok(info) => {
                     let elapsed = start.elapsed();
                     if initial_sync {
-                        if info.initial_block_download.unwrap_or(false) {
-                            let progress = info.verification_progress.unwrap_or(0.0) * 100.0;
+                        if info.initial_block_download {
+                            let progress = info.verification_progress * 100.0;
                             info!("Bitcoin Core syncing... {:.2}% complete", progress);
                             sleep(SYNC_CHECK_INTERVAL).await;
                             continue;

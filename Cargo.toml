@@ -39,8 +39,11 @@ tokio-util = { version = "0.7.10", features = ["codec"] }
 which = "4.4"
 
 # Bitcoin
-bitcoin = "0.29.1"
-secp256k1 = { version = "0.28.2", default-features = false, features =["alloc","rand","rand-std"] }
+secp256k1 = { version = "0.28.2", default-features = false, features = [
+    "alloc",
+    "rand",
+    "rand-std",
+] }
 
 # SV2
 binary_sv2 = "^1.0.0"
@@ -56,6 +59,7 @@ roles_logic_sv2 = "^1.0.0"
 sv1_api = "^1.0.0"
 slip132 = "0.10"
 devimint = "0.5.0"
+stratum-common = { version = "1.0.0", features = ["bitcoin"] }
 
 
 [dev-dependencies]

@@ -43,7 +43,7 @@ use tokio::{
 };
 use tracing::{error, info, warn};
 
-use bitcoin::BlockHash;
+use stratum_common::bitcoin::BlockHash;
 
 pub static IS_NEW_JOB_HANDLED: AtomicBool = AtomicBool::new(true);
 /// Represents the currently active `prevhash` of the mining job being worked on OR being submitted

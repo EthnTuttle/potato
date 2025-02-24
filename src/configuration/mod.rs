@@ -1,9 +1,9 @@
 use clap::Parser;
 use ext_config::{Config, File, FileFormat};
 use log::{debug, info, error, warn};
-use bitcoin::util::bip32::{ExtendedPubKey, DerivationPath};
-use bitcoin::secp256k1::Secp256k1;
-use bitcoin::Network;
+use stratum_common::bitcoin::util::bip32::{ExtendedPubKey, DerivationPath};
+use stratum_common::bitcoin::secp256k1::Secp256k1;
+use stratum_common::bitcoin::Network;
 use std::str::FromStr;
 use slip132::FromSlip132;
 use std::io::{self, Write};

@@ -7,7 +7,7 @@ use std::{convert::From, fmt::Debug, sync::MutexGuard};
 use std::{fmt, sync::PoisonError};
 use sv1_api::server_to_client::{Notify, SetDifficulty};
 
-use bitcoin::util::uint::ParseLengthError;
+use stratum_common::bitcoin::util::uint::ParseLengthError;
 
 pub type ProxyResult<'a, T> = core::result::Result<T, Error<'a>>;
 

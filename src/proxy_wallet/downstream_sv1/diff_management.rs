@@ -5,7 +5,7 @@ use roles_logic_sv2::utils::Mutex;
 use std::{ops::Div, sync::Arc};
 use sv1_api::json_rpc;
 
-use bitcoin::util::uint::Uint256;
+use stratum_common::bitcoin::util::uint::Uint256;
 
 impl Downstream {
     /// initializes the timestamp and resets the number of submits for a connection.

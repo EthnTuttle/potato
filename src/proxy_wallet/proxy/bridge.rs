@@ -536,7 +536,7 @@ mod test {
     use super::*;
     use async_channel::bounded;
 
-    use bitcoin::util::psbt::serialize::Serialize;
+    use stratum_common::bitcoin::util::psbt::serialize::Serialize;
 
     pub mod test_utils {
         use super::*;
@@ -602,8 +602,8 @@ mod test {
 
     #[test]
     fn test_version_bits_insert() {
-        use bitcoin;
-        use bitcoin::{blockdata::witness::Witness, hashes::Hash};
+        use stratum_common::bitcoin;
+        use stratum_common::bitcoin::{blockdata::witness::Witness, hashes::Hash};
 
         let extranonces = ExtendedExtranonce::new(0..6, 6..8, 8..16);
         let (bridge, _) = test_utils::create_bridge(extranonces);

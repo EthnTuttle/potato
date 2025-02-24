@@ -4,7 +4,7 @@ use crate::{
 };
 use async_channel::{Receiver, Sender};
 use binary_sv2::U256;
-use bitcoin::{Script, TxOut};
+use stratum_common::bitcoin::{Script, TxOut};
 use codec_sv2::{HandshakeRole, Responder, StandardEitherFrame, StandardSv2Frame};
 use error_handling::handle_result;
 use key_utils::{Secp256k1PublicKey, Secp256k1SecretKey, SignatureService};
@@ -731,8 +731,8 @@ impl Pool {
 #[cfg(test)]
 mod test {
     use binary_sv2::{B0255, B064K};
-    use bitcoin;
-    use bitcoin::{util::psbt::serialize::Serialize, Transaction, Witness};
+    use stratum_common::bitcoin;
+    use stratum_common::bitcoin::{util::psbt::serialize::Serialize, Transaction, Witness};
     use ext_config::{Config, File, FileFormat};
     use std::convert::TryInto;
     use tracing::error;
