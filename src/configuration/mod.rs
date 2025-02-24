@@ -95,11 +95,17 @@ pub fn create_default_pool_config() -> PoolConfiguration {
     }
 }
 
-pub fn create_default_proxy_config() -> ProxyConfig {
+pub fn create_default_proxy_config(pool_config: &PoolConfiguration) -> ProxyConfig {
+    // Parse the pool's listen address
+    let (host, port) = match pool_config.listen_address.rsplit_once(':') {
+        Some((h, p)) => (h.to_string(), p.parse().unwrap_or(34254)),
+        None => ("127.0.0.1".to_string(), 34254),
+    };
+
     ProxyConfig {
-        upstream_address: "127.0.0.1".to_string(),
-        upstream_port: 34254,
-        upstream_authority_pubkey: Secp256k1PublicKey::from_str("9auqWEzQDVyd2oe1JVGFLMLHZtCo2FFqZwtKA5gd9xbuEu7PH72").unwrap(),
+        upstream_address: host,
+        upstream_port: port,
+        upstream_authority_pubkey: pool_config.authority_public_key.clone(),
         downstream_address: "0.0.0.0".to_string(), 
         downstream_port: 34255,
         max_supported_version: 2,
@@ -120,15 +126,40 @@ pub fn create_default_proxy_config() -> ProxyConfig {
     }
 }
 
-pub fn load_or_create_proxy_config(config_path: &str) -> Result<ProxyConfig, Box<dyn std::error::Error>> {
+pub fn load_or_create_proxy_config(config_path: &str, pool_config: &PoolConfiguration) -> Result<ProxyConfig, Box<dyn std::error::Error>> {
     match Config::builder()
         .add_source(File::new(config_path, FileFormat::Toml))
         .build()
     {
-        Ok(config) => Ok(config.try_deserialize::<ProxyConfig>()?),
+        Ok(config) => {
+            let mut proxy_config: ProxyConfig = config.try_deserialize()?;
+            // Always override with pool's connection details
+            let (host, port) = match pool_config.listen_address.rsplit_once(':') {
+                Some((h, p)) => (h.to_string(), p.parse().unwrap_or(34254)),
+                None => ("127.0.0.1".to_string(), 34254),
+            };
+            
+            // Warn if we're overwriting existing values
+            if proxy_config.upstream_address != host || proxy_config.upstream_port != port {
+                warn!(
+                    "Overriding proxy upstream connection details from config file. Using pool's listen address {}:{}",
+                    host, port
+                );
+            }
+            if proxy_config.upstream_authority_pubkey != pool_config.authority_public_key {
+                warn!(
+                    "Overriding proxy upstream authority public key from config file with pool's authority key"
+                );
+            }
+            
+            proxy_config.upstream_address = host;
+            proxy_config.upstream_port = port;
+            proxy_config.upstream_authority_pubkey = pool_config.authority_public_key.clone();
+            Ok(proxy_config)
+        },
         Err(e) => {
             warn!("Failed to load proxy config ({}), using defaults", e);
-            Ok(create_default_proxy_config())
+            Ok(create_default_proxy_config(pool_config))
         }
     }
 }
