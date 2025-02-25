@@ -105,7 +105,7 @@ pub fn create_default_pool_config() -> PoolConfiguration {
         cert_validity_sec: 3600,
         coinbase_outputs: vec![CoinbaseOutput::new(
             "P2WPKH".to_string(),
-            "036adc3bdf21e6f9a0f0fb0066bf517e5b7909ed1563d6958a10993849a7554075".to_string(),
+            "032a384861cb109a7b69b550601e4935ee30903be6b281f058a3c65c657938f8f8".to_string(),
         )],
         pool_signature: "potato".to_string(),
         #[cfg(feature = "test_only_allow_unencrypted")]

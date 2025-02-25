@@ -77,24 +77,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Load or create default proxy config
     let proxy_settings = load_or_create_proxy_config(&args.proxy_config_path, &pool_settings)?;
     info!("ProxyWallet Config: {:?}", &proxy_settings);
-    
-    // Process coinbase output
-    let coinbase_output = process_coinbase_output(&mut args)?;
 
-    info!("Using coinbase output address: {}", coinbase_output);
+    info!("Using coinbase output address: {:?}", pool_settings.coinbase_outputs[0]);
     info!("Using derivation path: {}", args.derivation_path);
     info!("Using proxy config path: {}", args.proxy_config_path);
     info!(
         "Using pool mint config path: {}",
         args.pool_mint_config_path
     );
-
-    // Update pool settings with the validated coinbase output
-    let coinbase_output = CoinbaseOutput::new(
-        "P2WPKH".to_string(), // Using P2WPKH for SLIP-132 xpub
-        coinbase_output,
-    );
-    pool_settings.coinbase_outputs = vec![coinbase_output];
 
     let pool_task = tokio::spawn(async move {
         let pool = PoolSv2::new(pool_settings, cancel_token_pool);
