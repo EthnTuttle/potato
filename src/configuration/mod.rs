@@ -5,7 +5,7 @@ use crate::proxy_wallet::proxy_config::{
 use clap::Parser;
 use ext_config::{Config, File, FileFormat};
 use key_utils::Secp256k1PublicKey;
-use log::{error, info, warn};
+use tracing::{error, info, warn};
 use slip132::FromSlip132;
 use std::io::{self, Write};
 use std::str::FromStr;
@@ -42,11 +42,11 @@ pub struct Args {
     pub coinbase_output: Option<String>,
 
     /// The derivation path for the coinbase output (e.g. m/0/0)
-    #[arg(short = 'd', long = "derivation-path", default_value = "m/0/0")]
+    #[arg(short = 'd', long = "derivation-path", default_value = "m/84/1/0")]
     pub derivation_path: String,
 
     /// The Bitcoin network to use (mainnet not allowed)
-    #[arg(short = 'n', long = "network", default_value = "testnet4")]
+    #[arg(short = 'n', long = "network", default_value = "testnet")]
     pub network: Network,
 
     /// Whether bitcoind is performing initial sync (extends wait time indefinitely)
@@ -115,14 +115,10 @@ pub fn create_default_pool_config() -> PoolConfiguration {
 
 pub fn create_default_proxy_config(pool_config: &PoolConfiguration) -> ProxyConfig {
     // Parse the pool's listen address
-    let (host, port) = match pool_config.listen_address.rsplit_once(':') {
-        Some((h, p)) => (h.to_string(), p.parse().unwrap_or(34254)),
-        None => ("127.0.0.1".to_string(), 34254),
-    };
 
     ProxyConfig {
-        upstream_address: host,
-        upstream_port: port,
+        upstream_address: "127.0.0.1".to_string(),
+        upstream_port: 34254,
         upstream_authority_pubkey: pool_config.authority_public_key.clone(),
         downstream_address: "0.0.0.0".to_string(),
         downstream_port: 34255,
@@ -154,22 +150,9 @@ pub fn load_or_create_proxy_config(
     {
         Ok(config) => {
             let mut proxy_config: ProxyConfig = config.try_deserialize()?;
-            // Always override with pool's connection details
-            let (host, port) = match pool_config.listen_address.rsplit_once(':') {
-                Some((h, p)) => (h.to_string(), p.parse().unwrap_or(34254)),
-                None => ("127.0.0.1".to_string(), 34254),
-            };
-
-            warn!(
-                    "Overriding proxy upstream connection details from config file. Using pool's listen address {}:{}",
-                    host, port
-                );
             warn!(
                     "Overriding proxy upstream authority public key from config file with pool's authority key"
                 );
-
-            proxy_config.upstream_address = host;
-            proxy_config.upstream_port = port;
             proxy_config.upstream_authority_pubkey = pool_config.authority_public_key.clone();
             Ok(proxy_config)
         }

@@ -9,16 +9,8 @@ use tokio_util::sync::CancellationToken;
 use crate::{error::PoolError, status};
 use mining_pool::{get_coinbase_output, Pool, PoolConfiguration};
 use template_receiver::TemplateRx;
-use tracing::{error, info, warn};
+use tracing::{debug, error, info, warn};
 
-pub async fn run(
-    config: PoolConfiguration,
-    cancel_token: CancellationToken,
-) -> Result<(), Box<dyn std::error::Error>> {
-    let pool = PoolSv2::new(config, cancel_token);
-    pool.start().await;
-    Ok(())
-}
 
 #[derive(Debug, Clone)]
 pub struct PoolSv2 {
@@ -35,6 +27,7 @@ impl PoolSv2 {
     }
 
     pub async fn start(&self) -> Result<(), PoolError> {
+        debug!("starting pool");
         let config = self.config.clone();
         let (status_tx, status_rx) = unbounded();
         let (s_new_t, r_new_t) = bounded(10);
@@ -55,6 +48,7 @@ impl PoolSv2 {
             tp_authority_public_key,
         )
         .await?;
+        debug!("template receiver connected");
         let pool = Pool::start(
             config.clone(),
             r_new_t,
@@ -63,7 +57,7 @@ impl PoolSv2 {
             s_message_recv_signal,
             status::Sender::DownstreamListener(status_tx),
         );
-
+        debug!("pool started");
         // Start the error handling loop
         // See `./status.rs` and `utils/error_handling` for information on how this operates
         loop {

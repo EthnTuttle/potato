@@ -1,6 +1,7 @@
 use anyhow::Result;
 use clap::Parser;
-use log::{debug, error, info};
+use proxy_wallet::TranslatorSv2;
+use tracing::{debug, error, info};
 use std::env;
 use std::path::PathBuf;
 use stratum_common::bitcoin;
@@ -18,7 +19,7 @@ use bitcoin_node::BitcoinNode;
 use configuration::{
     load_or_create_pool_config, load_or_create_proxy_config, process_coinbase_output, Args,
 };
-use pool_mint::mining_pool::CoinbaseOutput;
+use pool_mint::{mining_pool::CoinbaseOutput, PoolSv2};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -36,26 +37,34 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     } else {
         env::set_var("RUST_LOG", "info");
     }
-    pretty_env_logger::init();
+
+    // Initialize tracing subscriber
+    tracing_subscriber::fmt()
+        .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
+        .with_file(true)
+        .with_line_number(true)
+        .with_thread_ids(true)
+        .with_target(false)
+        .init();
 
     debug!("DEBUG {args:?}");
 
-    // Initialize Bitcoin Core
-    info!(
-        "Starting Bitcoin Core{}...",
-        if args.initial_sync {
-            " (initial sync mode)"
-        } else {
-            ""
-        }
-    );
-    let bitcoin_data_dir = PathBuf::from("bitcoin_data");
-    let bitcoin_node = BitcoinNode::new(bitcoin_data_dir, args.network).await?;
+    // // Initialize Bitcoin Core
+    // info!(
+    //     "Starting Bitcoin Core{}...",
+    //     if args.initial_sync {
+    //         " (initial sync mode)"
+    //     } else {
+    //         ""
+    //     }
+    // );
+    // let bitcoin_data_dir = PathBuf::from("bitcoin_data");
+    // let bitcoin_node = BitcoinNode::new(bitcoin_data_dir, args.network).await?;
 
-    // Wait for Bitcoin Core to be ready
-    info!("Waiting for Bitcoin Core to be ready...");
-    bitcoin_node.wait_for_ready(args.initial_sync).await?;
-    info!("Bitcoin Core is ready");
+    // // Wait for Bitcoin Core to be ready
+    // info!("Waiting for Bitcoin Core to be ready...");
+    // bitcoin_node.wait_for_ready(args.initial_sync).await?;
+    // info!("Bitcoin Core is ready");
 
     let cancel_token = CancellationToken::new();
     let cancel_token_proxy = cancel_token.clone();
@@ -87,28 +96,32 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     );
     pool_settings.coinbase_outputs = vec![coinbase_output];
 
-    // Run both services concurrently and handle Ctrl+C
-    tokio::select! {
-        proxy_result = proxy_wallet::run(proxy_settings, cancel_token_proxy) => {
-            if let Err(e) = proxy_result {
-                error!("ProxyWallet error: {}", e);
-                cancel_token.cancel();
-                return Err(e);
-            }
+    let pool_task = tokio::spawn(async move {
+        let pool = PoolSv2::new(pool_settings, cancel_token_pool);
+        if let Err(e) = pool.start().await {
+            error!("Pool task error: {}", e);
+            return Err(e);
         }
-        pool_result = pool_mint::run(pool_settings, cancel_token_pool) => {
-            if let Err(e) = pool_result {
-                error!("PoolMint error: {}", e);
-                cancel_token.cancel();
-                return Err(e);
-            }
-        }
-        _ = tokio::signal::ctrl_c() => {
-            info!("Received Ctrl+C, initiating graceful shutdown...");
-            cancel_token.cancel();
-        }
+        Ok(())
+    });
+
+    let proxy_task: tokio::task::JoinHandle<std::result::Result<(), ()>> = tokio::spawn(async move {
+        let proxy = TranslatorSv2::new(proxy_settings, cancel_token_proxy);
+        proxy.start().await;
+        Ok(())
+    });
+
+    // Wait for both tasks to complete
+    let (pool_result, proxy_result) = tokio::join!(pool_task, proxy_task);
+
+    if let Err(e) = pool_result {
+        error!("Pool task error: {}", e);
+    }
+    if let Err(e) = proxy_result {
+        error!("Proxy task error: {}", e);
     }
 
     info!("Shutdown complete");
+
     Ok(())
 }

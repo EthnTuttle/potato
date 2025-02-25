@@ -1,6 +1,6 @@
 use anyhow::Result;
 use bitcoincore_rpc::{Auth, Client as BitcoinCoreClient, RpcApi};
-use log::{debug, info};
+use tracing::{debug, info};
 use std::path::PathBuf;
 use std::time::Duration;
 use stratum_common::bitcoin;

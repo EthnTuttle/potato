@@ -26,15 +26,6 @@ pub mod proxy_config;
 pub mod upstream_sv2;
 pub mod utils;
 
-pub async fn run(
-    settings: ProxyConfig,
-    cancel_token: CancellationToken,
-) -> Result<(), Box<dyn std::error::Error>> {
-    let translator = TranslatorSv2::new(settings, cancel_token);
-    translator.start().await;
-    Ok(())
-}
-
 #[derive(Clone, Debug)]
 pub struct TranslatorSv2 {
     config: ProxyConfig,
@@ -179,6 +170,7 @@ impl TranslatorSv2 {
         let diff_config = Arc::new(Mutex::new(proxy_config.upstream_difficulty_config.clone()));
         let task_collector_upstream = task_collector.clone();
         // Instantiate a new `Upstream` (SV2 Pool)
+        debug!("creating upstream");
         let upstream = match upstream_sv2::Upstream::new(
             upstream_addr,
             proxy_config.upstream_authority_pubkey,
@@ -200,6 +192,7 @@ impl TranslatorSv2 {
                 return;
             }
         };
+        debug!("upstream created");
         let task_collector_init_task = task_collector.clone();
         // Spawn a task to do all of this init work so that the main thread
         // can listen for signals and failures on the status channel. This

@@ -17,7 +17,7 @@ use roles_logic_sv2::{
 };
 use std::{convert::TryInto, net::SocketAddr, sync::Arc};
 use tokio::{net::TcpStream, task};
-use tracing::info;
+use tracing::{debug, info};
 
 mod message_handler;
 mod setup_connection;
@@ -43,7 +43,9 @@ impl TemplateRx {
         coinbase_out_len: u32,
         expected_tp_authority_public_key: Option<Secp256k1PublicKey>,
     ) -> PoolResult<()> {
+        debug!("connecting to template provider");
         let stream = TcpStream::connect(address).await?;
+        debug!("connected to template provider");
         info!("Template provider connection:");
         info!("  - Connected to server at: {}", address);
         info!(
