@@ -77,10 +77,10 @@ pub enum Error<'a> {
     #[allow(clippy::enum_variant_names)]
     TargetError(roles_logic_sv2::errors::Error),
     Sv1MessageTooLong,
-    PoolError(PoolError),
+    MiningPoolError(PoolError),
 }
 
-impl<'a> fmt::Display for Error<'a> {
+impl fmt::Display for Error<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         use Error::*;
         match self {
@@ -116,54 +116,54 @@ impl<'a> fmt::Display for Error<'a> {
             Sv1MessageTooLong => {
                 write!(f, "Received an sv1 message that is longer than max len")
             }
-            PoolError(pool_error) => write!(f, "Pool error: `{:?}`", pool_error),
+            MiningPoolError(pool_error) => write!(f, "Pool error: `{:?}`", pool_error),
         }
     }
 }
 
-impl<'a> From<binary_sv2::Error> for Error<'a> {
+impl From<binary_sv2::Error> for Error<'_> {
     fn from(e: binary_sv2::Error) -> Self {
         Error::BinarySv2(e)
     }
 }
 
-impl<'a> From<codec_sv2::noise_sv2::Error> for Error<'a> {
+impl From<codec_sv2::noise_sv2::Error> for Error<'_> {
     fn from(e: codec_sv2::noise_sv2::Error) -> Self {
         Error::CodecNoise(e)
     }
 }
 
-impl<'a> From<framing_sv2::Error> for Error<'a> {
+impl From<framing_sv2::Error> for Error<'_> {
     fn from(e: framing_sv2::Error) -> Self {
         Error::FramingSv2(e)
     }
 }
 
-impl<'a> From<std::io::Error> for Error<'a> {
+impl From<std::io::Error> for Error<'_> {
     fn from(e: std::io::Error) -> Self {
         Error::Io(e)
     }
 }
 
-impl<'a> From<std::num::ParseIntError> for Error<'a> {
+impl From<std::num::ParseIntError> for Error<'_> {
     fn from(e: std::num::ParseIntError) -> Self {
         Error::ParseInt(e)
     }
 }
 
-impl<'a> From<roles_logic_sv2::errors::Error> for Error<'a> {
+impl From<roles_logic_sv2::errors::Error> for Error<'_> {
     fn from(e: roles_logic_sv2::errors::Error) -> Self {
         Error::RolesSv2Logic(e)
     }
 }
 
-impl<'a> From<serde_json::Error> for Error<'a> {
+impl From<serde_json::Error> for Error<'_> {
     fn from(e: serde_json::Error) -> Self {
         Error::BadSerdeJson(e)
     }
 }
 
-impl<'a> From<ConfigError> for Error<'a> {
+impl From<ConfigError> for Error<'_> {
     fn from(e: ConfigError) -> Self {
         Error::BadConfigDeserialize(e)
     }
@@ -175,20 +175,20 @@ impl<'a> From<sv1_api::error::Error<'a>> for Error<'a> {
     }
 }
 
-impl<'a> From<async_channel::RecvError> for Error<'a> {
+impl From<async_channel::RecvError> for Error<'_> {
     fn from(e: async_channel::RecvError) -> Self {
         Error::ChannelErrorReceiver(e)
     }
 }
 
-impl<'a> From<tokio::sync::broadcast::error::RecvError> for Error<'a> {
+impl From<tokio::sync::broadcast::error::RecvError> for Error<'_> {
     fn from(e: tokio::sync::broadcast::error::RecvError) -> Self {
         Error::TokioChannelErrorRecv(e)
     }
 }
 
 //*** LOCK ERRORS ***
-impl<'a, T> From<PoisonError<T>> for Error<'a> {
+impl<T> From<PoisonError<T>> for Error<'_> {
     fn from(_e: PoisonError<T>) -> Self {
         Error::PoisonLock
     }
@@ -219,13 +219,13 @@ impl<'a> From<tokio::sync::broadcast::error::SendError<Notify<'a>>> for Error<'a
     }
 }
 
-impl<'a> From<async_channel::SendError<sv1_api::Message>> for Error<'a> {
+impl From<async_channel::SendError<sv1_api::Message>> for Error<'_> {
     fn from(e: async_channel::SendError<sv1_api::Message>) -> Self {
         Error::ChannelErrorSender(ChannelSendError::V1Message(e))
     }
 }
 
-impl<'a> From<async_channel::SendError<(ExtendedExtranonce, u32)>> for Error<'a> {
+impl From<async_channel::SendError<(ExtendedExtranonce, u32)>> for Error<'_> {
     fn from(e: async_channel::SendError<(ExtendedExtranonce, u32)>) -> Self {
         Error::ChannelErrorSender(ChannelSendError::Extranonce(e))
     }
@@ -261,25 +261,25 @@ impl<'a>
     }
 }
 
-impl<'a> From<Vec<u8>> for Error<'a> {
+impl From<Vec<u8>> for Error<'_> {
     fn from(e: Vec<u8>) -> Self {
         Error::VecToSlice32(e)
     }
 }
 
-impl<'a> From<ParseLengthError> for Error<'a> {
+impl From<ParseLengthError> for Error<'_> {
     fn from(e: ParseLengthError) -> Self {
         Error::Uint256Conversion(e)
     }
 }
 
-impl<'a> From<SetDifficulty> for Error<'a> {
+impl From<SetDifficulty> for Error<'_> {
     fn from(e: SetDifficulty) -> Self {
         Error::SetDifficultyToMessage(e)
     }
 }
 
-impl<'a> From<std::convert::Infallible> for Error<'a> {
+impl From<std::convert::Infallible> for Error<'_> {
     fn from(e: std::convert::Infallible) -> Self {
         Error::Infallible(e)
     }
@@ -291,14 +291,14 @@ impl<'a> From<Mining<'a>> for Error<'a> {
     }
 }
 
-impl<'a> From<async_channel::SendError<()>> for Error<'a> {
+impl From<async_channel::SendError<()>> for Error<'_> {
     fn from(e: async_channel::SendError<()>) -> Self {
         Error::ChannelErrorSender(ChannelSendError::General(e.to_string()))
     }
 }
 
-impl<'a> From<async_channel::SendError<roles_logic_sv2::template_distribution_sv2::NewTemplate<'_>>>
-    for Error<'a>
+impl From<async_channel::SendError<roles_logic_sv2::template_distribution_sv2::NewTemplate<'_>>>
+    for Error<'_>
 {
     fn from(
         e: async_channel::SendError<roles_logic_sv2::template_distribution_sv2::NewTemplate<'_>>,
@@ -307,9 +307,9 @@ impl<'a> From<async_channel::SendError<roles_logic_sv2::template_distribution_sv
     }
 }
 
-impl<'a>
+impl
     From<async_channel::SendError<roles_logic_sv2::template_distribution_sv2::SetNewPrevHash<'_>>>
-    for Error<'a>
+    for Error<'_>
 {
     fn from(
         e: async_channel::SendError<roles_logic_sv2::template_distribution_sv2::SetNewPrevHash<'_>>,
@@ -334,9 +334,9 @@ pub enum PoolError {
     Sv2ProtocolError((u32, Mining<'static>)),
 }
 
-impl Into<Error<'static>> for PoolError {
-    fn into(self) -> Error<'static> {
-        Error::PoolError(self)
+impl From<PoolError> for Error<'static> {
+    fn from(val: PoolError) -> Self {
+        Error::MiningPoolError(val)
     }
 }
 

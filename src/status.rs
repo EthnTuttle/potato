@@ -192,10 +192,10 @@ pub async fn handle_error(
         Error::Sv1MessageTooLong => {
             send_status(sender, e, error_handling::ErrorBranch::Break).await
         }
-        Error::PoolError(pool_error) => {
+        Error::MiningPoolError(pool_error) => {
             send_status(
                 sender,
-                Error::PoolError(pool_error),
+                Error::MiningPoolError(pool_error),
                 error_handling::ErrorBranch::Break,
             )
             .await

@@ -3,7 +3,6 @@ use clap::Parser;
 use proxy_wallet::TranslatorSv2;
 use std::env;
 use stratum_common::bitcoin;
-use tokio;
 use tokio_util::sync::CancellationToken;
 use tracing::{debug, error, info};
 

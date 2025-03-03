@@ -149,7 +149,7 @@ pub fn create_default_proxy_config(pool_config: &PoolConfiguration) -> ProxyConf
     ProxyConfig {
         upstream_address: "127.0.0.1".to_string(),
         upstream_port: 34254,
-        upstream_authority_pubkey: pool_config.authority_public_key.clone(),
+        upstream_authority_pubkey: pool_config.authority_public_key,
         downstream_address: "0.0.0.0".to_string(),
         downstream_port: 34255,
         max_supported_version: 2,
@@ -183,7 +183,7 @@ pub fn load_or_create_proxy_config(
             warn!(
                     "Overriding proxy upstream authority public key from config file with pool's authority key"
                 );
-            proxy_config.upstream_authority_pubkey = pool_config.authority_public_key.clone();
+            proxy_config.upstream_authority_pubkey = pool_config.authority_public_key;
             Ok(proxy_config)
         }
         Err(e) => {

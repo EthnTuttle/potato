@@ -82,13 +82,11 @@ impl BitcoinNode {
             match self.client.get_blockchain_info() {
                 Ok(info) => {
                     let elapsed = start.elapsed();
-                    if initial_sync {
-                        if info.initial_block_download {
-                            let progress = info.verification_progress * 100.0;
-                            info!("Bitcoin Core syncing... {:.2}% complete", progress);
-                            sleep(SYNC_CHECK_INTERVAL).await;
-                            continue;
-                        }
+                    if initial_sync && info.initial_block_download {
+                        let progress = info.verification_progress * 100.0;
+                        info!("Bitcoin Core syncing... {:.2}% complete", progress);
+                        sleep(SYNC_CHECK_INTERVAL).await;
+                        continue;
                     }
                     debug!("Bitcoin Core ready after {:?}", elapsed);
                     return Ok(());
