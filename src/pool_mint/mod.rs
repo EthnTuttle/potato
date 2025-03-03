@@ -11,7 +11,6 @@ use mining_pool::{get_coinbase_output, Pool, PoolConfiguration};
 use template_receiver::TemplateRx;
 use tracing::{debug, error, info, warn};
 
-
 #[derive(Debug, Clone)]
 pub struct PoolSv2 {
     config: PoolConfiguration,

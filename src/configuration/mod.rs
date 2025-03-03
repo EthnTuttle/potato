@@ -3,15 +3,15 @@ use crate::proxy_wallet::proxy_config::{
     DownstreamDifficultyConfig, ProxyConfig, UpstreamDifficultyConfig,
 };
 use clap::Parser;
+use core::panic;
 use ext_config::{Config, File, FileFormat};
 use key_utils::Secp256k1PublicKey;
-use tracing::{error, info, warn};
-use slip132::FromSlip132;
 use std::io::{self, Write};
 use std::str::FromStr;
 use stratum_common::bitcoin::secp256k1::Secp256k1;
-use stratum_common::bitcoin::util::bip32::{DerivationPath, ExtendedPubKey};
+use stratum_common::bitcoin::util::bip32::{self, DerivationPath, ExtendedPubKey};
 use stratum_common::bitcoin::Network;
+use tracing::{error, info, warn};
 
 #[derive(Parser, Debug)]
 #[clap(author = "Gary Krause", version, about)]
@@ -54,33 +54,63 @@ pub struct Args {
     pub initial_sync: bool,
 }
 
-fn derive_child_public_key(xpub: &ExtendedPubKey, path: &str) -> Result<ExtendedPubKey, String> {
+fn derive_child_public_key(
+    xpub: &ExtendedPubKey,
+    path: &str,
+) -> Result<ExtendedPubKey, bip32::Error> {
     let secp = Secp256k1::new();
-    DerivationPath::from_str(path)
-        .map_err(|e| format!("Invalid derivation path: {}", e))
-        .and_then(|derivation_path| {
-            xpub.derive_pub(&secp, &derivation_path)
-                .map_err(|e| format!("Derivation error: {}", e))
-        })
+    let derivation_path = DerivationPath::from_str(path)?;
+    let child_pub_key = xpub.derive_pub(&secp, &derivation_path)?;
+    info!(
+        "\nPublic key derived from your Master Public Key -> {:?}",
+        child_pub_key.to_pub().inner.to_string()
+    );
+    Ok(child_pub_key)
 }
 
 fn validate_xpub(input: &str) -> Result<ExtendedPubKey, String> {
-    ExtendedPubKey::from_slip132_str(input)
-        .map_err(|_| format!("Invalid SLIP-132 extended public key"))
+    slip132::FromSlip132::from_slip132_str(input)
+        .map_err(|x| format!("Invalid SLIP-132 extended public key: {:?}", x))
 }
 
 fn prompt_for_coinbase_output() -> io::Result<String> {
+    let coinbase_output: ExtendedPubKey;
     loop {
-        print!("Please enter the SLIP-132 xpub of the coinbase output: ");
+        info!("Please enter the SLIP-132 pubkey of the coinbase output: ");
         io::stdout().flush()?;
         let mut input = String::new();
         io::stdin().read_line(&mut input)?;
         let input = input.trim();
 
         match validate_xpub(input) {
-            Ok(_) => return Ok(input.to_string()),
+            Ok(x) => {
+                coinbase_output = x;
+                break;
+            }
             Err(e) => {
-                println!("Error: {}. Please try again.", e);
+                error!("Error: {}. Please try again.", e);
+                continue;
+            }
+        }
+    }
+    info!("Valid SLIP-132 pubkey provided.");
+    loop {
+        info!("Please provide a derivation path. A hardened path will not work.");
+        info!("Press enter to use the default: m/84/1/0");
+        io::stdout().flush()?;
+        let mut input = String::new();
+        io::stdin().read_line(&mut input)?;
+        if input.trim().is_empty() {
+            input = "m/84/1/0".to_owned();
+        }
+        match derive_child_public_key(&coinbase_output, &input) {
+            Ok(child_key) => {
+                info!("Derived public key: {}", child_key.to_string());
+                return Ok(child_key.to_pub().inner.to_string());
+            }
+            Err(e) => {
+                error!("Failed to derive child key: {}", e);
+                warn!("Be sure to provide a non-hardened key derivation");
                 continue;
             }
         }
@@ -178,30 +208,40 @@ pub fn load_or_create_pool_config(
     }
 }
 
-pub fn process_coinbase_output(args: &mut Args) -> Result<String, Box<dyn std::error::Error>> {
-    let coinbase_output = if let Some(ref output) = args.coinbase_output {
-        match validate_xpub(output) {
-            Ok(xpub) => {
-                // Derive child key
-                match derive_child_public_key(&xpub, &args.derivation_path) {
-                    Ok(child_key) => {
-                        info!("Derived public key: {}", child_key.to_string());
-                        output.to_string()
-                    }
-                    Err(e) => {
-                        error!("Failed to derive child key: {}", e);
-                        prompt_for_coinbase_output()?
-                    }
+pub fn process_coinbase_output(
+    coinbase_output: Option<String>,
+    derivation_path: String,
+) -> Result<String, Box<dyn std::error::Error>> {
+    if coinbase_output.is_none() {
+        return match prompt_for_coinbase_output() {
+            Ok(x) => Ok(x),
+            Err(e) => panic!("You borked it! {}", e),
+        };
+    }
+    let coinbase_output = coinbase_output.unwrap(); // we already checked this!
+    let coinbase_output = match validate_xpub(&coinbase_output) {
+        Ok(xpub) => {
+            // Derive child key
+            match derive_child_public_key(&xpub, &derivation_path) {
+                Ok(child_key) => {
+                    info!(
+                        "Used {} with derivation path {}",
+                        coinbase_output, derivation_path
+                    );
+                    info!("Derived public key: {}", child_key.to_string());
+                    child_key.to_pub().inner.to_string()
+                }
+                Err(e) => {
+                    error!("Failed to derive child key: {}", e);
+                    warn!("Be sure to provide an correctly formatted SLIP-132 and non-hardened key derivation");
+                    prompt_for_coinbase_output()?
                 }
             }
-            Err(e) => {
-                error!("Invalid coinbase output provided: {}", e);
-                prompt_for_coinbase_output()?
-            }
         }
-    } else {
-        prompt_for_coinbase_output()?
+        Err(e) => {
+            error!("Invalid coinbase output provided: {}", e);
+            prompt_for_coinbase_output()?
+        }
     };
-    args.coinbase_output = Some(coinbase_output.clone());
     Ok(coinbase_output)
 }

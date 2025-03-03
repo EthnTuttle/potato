@@ -1,10 +1,10 @@
 use anyhow::Result;
 use bitcoincore_rpc::{Auth, Client as BitcoinCoreClient, RpcApi};
-use tracing::{debug, info};
 use std::path::PathBuf;
 use std::time::Duration;
 use stratum_common::bitcoin;
 use tokio::fs;
+use tracing::{debug, info};
 
 const BITCOIN_CONF_TEMPLATE: &str = r#"
 regtest=1
